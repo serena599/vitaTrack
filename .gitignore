@@ -19,7 +19,7 @@ Package.resolved
 node_modules/
 dist/
 build/
-.env
+
 
 # ============ macOS system files ============
 .DS_Store
@@ -33,4 +33,4 @@ yarn-error.log*
 # ============ Others ============
 *.zip
 *.bak
-*.tmp 
+*.tmp
