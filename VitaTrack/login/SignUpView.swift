@@ -171,7 +171,7 @@ struct SignUpView: View {
     }
 }
 
-// 隐私政策视图 - 修复滚动问题
+
 struct PrivacyPolicyView: View {
     @Environment(\.dismiss) private var dismiss
     
