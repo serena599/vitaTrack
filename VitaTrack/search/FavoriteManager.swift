@@ -22,7 +22,6 @@ class FavoriteManager: ObservableObject {
     @Published var userFavorites: [Int] = [] // Store the list of recipe IDs favorited by the current user
     
     private init() {
-
         NotificationCenter.default.addObserver(
             self, 
             selector: #selector(userDidLogin),
@@ -37,7 +36,7 @@ class FavoriteManager: ObservableObject {
             object: nil
         )
         
-     
+        // 初始化时获取当前用户ID
         if let user = UserManager.shared.currentUser {
             self.currentUserID = user.user_id
             fetchUserFavorites()
@@ -51,45 +50,27 @@ class FavoriteManager: ObservableObject {
     @objc private func userDidLogin() {
         if let user = UserManager.shared.currentUser {
             let userID = user.user_id
-            print("FavoriteManager: User logged in, updating current user ID from \(self.currentUserID) to \(userID)")
             
-            if userID <= 0 {
-                print("FavoriteManager: Warning - received invalid user ID after login: \(userID)")
-                return
+            // 只有当用户ID有效时才更新
+            if userID > 0 {
+                self.currentUserID = userID
+                fetchUserFavorites()
             }
-            
-            self.currentUserID = userID
-            print("FavoriteManager: User logged in, updated current user ID to \(self.currentUserID)")
-            fetchUserFavorites()
-        } else {
-            print("FavoriteManager: User login notification received but no current user found")
         }
     }
     
     @objc private func userDidLogout() {
         self.currentUserID = 0
         self.userFavorites = []
-        print("FavoriteManager: User logged out, cleared favorites list")
     }
     
     func setCurrentUser(userID: Int) {
-        print("FavoriteManager: Setting current user ID to \(userID)")
-        
-        if userID <= 0 {
-            print("FavoriteManager: Warning - invalid user ID: \(userID)")
-            return
-        }
-        
-        self.currentUserID = userID
-        print("FavoriteManager: Current user ID updated to \(userID)")
-        
-        // Fetch updated favorite list
-        fetchUserFavorites { success in
-            if success {
-                print("FavoriteManager: Successfully fetched favorites for user \(userID)")
-            } else {
-                print("FavoriteManager: Failed to fetch favorites for user \(userID)")
-            }
+
+        if userID > 0 {
+            self.currentUserID = userID
+            
+       
+            fetchUserFavorites()
         }
     }
     
@@ -116,11 +97,9 @@ class FavoriteManager: ObservableObject {
                 let favorites = try JSONDecoder().decode([FavoriteRecipe].self, from: data)
                 DispatchQueue.main.async {
                     self.userFavorites = favorites.map { $0.recipe_ID }
-                    print("✅ Successfully retrieved user favorites, total: \(self.userFavorites.count)")
                     completion(true)
                 }
             } catch {
-                print("❌ Failed to parse user favorites:", error)
                 DispatchQueue.main.async {
                     completion(false)
                 }
@@ -160,11 +139,9 @@ class FavoriteManager: ObservableObject {
                     if !self.userFavorites.contains(recipeID) {
                         self.userFavorites.append(recipeID)
                     }
-                    print("✅ Successfully added to favorites")
                     completion(true)
                 }
             } else {
-                print("❌ Failed to add favorite:", error?.localizedDescription ?? "")
                 completion(false)
             }
         }.resume()
@@ -187,11 +164,9 @@ class FavoriteManager: ObservableObject {
             if error == nil {
                 DispatchQueue.main.async {
                     self.userFavorites.removeAll { $0 == recipeID }
-                    print("✅ Successfully removed from favorites")
                     completion(true)
                 }
             } else {
-                print("❌ Failed to remove favorite:", error?.localizedDescription ?? "")
                 completion(false)
             }
         }.resume()

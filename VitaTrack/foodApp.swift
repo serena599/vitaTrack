@@ -581,23 +581,19 @@ class FoodViewModel: ObservableObject {
     
     @MainActor
     func loadFoods() async {
-        if UserManager.shared.currentUser == nil {
+        guard let user = UserManager.shared.currentUser else {
             if let savedUserId = UserDefaults.standard.object(forKey: "savedUserId") as? Int {
                 let semaphore = DispatchSemaphore(value: 0)
                 var userLoaded = false
-                var actualUserId = savedUserId
                 
                 UserManager.shared.fetchUser(userId: savedUserId) {
                     userLoaded = UserManager.shared.currentUser != nil
-                    if let user = UserManager.shared.currentUser {
-                        actualUserId = user.user_id
-                    }
                     semaphore.signal()
                 }
                 
                 _ = semaphore.wait(timeout: .now() + 3.0)
                 
-                if !userLoaded {
+                if !userLoaded || UserManager.shared.currentUser == nil {
                     DispatchQueue.main.async {
                         self.foodItems = []
                         self.mealCounts = [:]
@@ -611,12 +607,37 @@ class FoodViewModel: ObservableObject {
                 }
                 return
             }
-        }
-        
-        guard let user = UserManager.shared.currentUser else {
-            DispatchQueue.main.async {
-                self.foodItems = []
-                self.mealCounts = [:]
+            
+            guard let recoveredUser = UserManager.shared.currentUser else {
+                DispatchQueue.main.async {
+                    self.foodItems = []
+                    self.mealCounts = [:]
+                }
+                return
+            }
+            
+            let userId = recoveredUser.user_id
+            
+            if userId <= 0 {
+                DispatchQueue.main.async {
+                    self.foodItems = []
+                    self.mealCounts = [:]
+                }
+                return
+            }
+            
+            do {
+                let newFoodItems = try await NetworkService.shared.getMealRecords(userId: userId, date: selectedDate)
+                
+                DispatchQueue.main.async {
+                    self.foodItems = newFoodItems
+                    self.updateMealCounts()
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.foodItems = []
+                    self.mealCounts = [:]
+                }
             }
             return
         }

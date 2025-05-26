@@ -115,31 +115,18 @@ struct MealCompositionView: View {
         }
         .onAppear {
             Task {
-                print("MealCompositionView appeared for mealType: \(mealType.title)")
-                
-                // Check user status
-                if let user = UserManager.shared.currentUser {
-                    print("User logged in: ID=\(user.user_id), username=\(user.username)")
-                } else {
-                    print("Warning: No logged in user, attempting to fetch user status")
-                    // Try to get user ID from UserDefaults and refresh user info
+   
+                if UserManager.shared.currentUser == nil {
                     if let savedUserId = UserDefaults.standard.object(forKey: "savedUserId") as? Int {
-                        print("Found saved user ID: \(savedUserId), attempting to fetch user data")
                         UserManager.shared.fetchUser(userId: savedUserId) {
-                            print("User data fetch completed")
                             Task {
                                 await viewModel.loadFoods()
                             }
                         }
                     }
-                }
-                
-                // Always force a fresh data load when view appears
-                await viewModel.loadFoods()
-                
-                print("Filtered food items for \(mealType.title): \(filteredFoodItems.count)")
-                filteredFoodItems.forEach { item in
-                    print("- \(item.name) (Meal: \(item.mealType?.title ?? "None"), Date: \(item.date))")
+                } else {
+                    
+                    await viewModel.loadFoods()
                 }
             }
         }
