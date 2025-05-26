@@ -196,7 +196,6 @@ class NetworkService {
     
     func getMealRecords(userId: Int, date: Date? = nil, mealType: MealType? = nil) async throws -> [FoodItem] {
         guard userId > 0 else {
-            debugPrint("Error: Invalid user ID")
             throw URLError(.badURL)
         }
         
@@ -218,19 +217,16 @@ class NetworkService {
         }
         
         guard let url = urlComponents.url else {
-            debugPrint("Error: Invalid URL")
             throw URLError(.badURL)
         }
         
         let (data, response) = try await URLSession.shared.data(from: url)
         
         guard let httpResponse = response as? HTTPURLResponse else {
-            debugPrint("Error: Invalid response")
             throw URLError(.badServerResponse)
         }
         
         guard (200...299).contains(httpResponse.statusCode) else {
-            debugPrint("Error: Server returned \(httpResponse.statusCode)")
             throw URLError(.badServerResponse)
         }
         
@@ -282,19 +278,13 @@ class NetworkService {
             "food_category": food.addFoodCategory?.rawValue
         ]
         
-        // Add image URL (if available)
         if let imageUrl = food.imageUrl, !imageUrl.isEmpty {
             record["image_url"] = imageUrl
-            print("Including image URL in food record: \(imageUrl)")
         }
         
         request.httpBody = try JSONSerialization.data(withJSONObject: record)
         
         let (data, response) = try await URLSession.shared.data(for: request)
-        
-        if let responseString = String(data: data, encoding: .utf8) {
-            print("Server response:", responseString)
-        }
         
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
@@ -307,22 +297,14 @@ class NetworkService {
             let foodId = responseData["food_id"] as? Int ?? 0
             let id = responseData["id"] as? Int ?? 0
             
-            print("Parsed server response - food_id:", foodId, "id:", id)
-            
-            if foodId == 0 {
-                print("Warning: Server returned zero or missing food_id")
-            }
-            
             return (food_id: foodId, id: id)
         }
         
         throw URLError(.cannotParseResponse)
     }
     
-    // Add delete method
     func deleteMealRecord(id: String) async throws {
         guard let mealUrl = URL(string: "\(baseURL)/meal-records/\(id)") else {
-            debugPrint("Delete Error: Invalid URL")
             throw URLError(.badURL)
         }
         
@@ -332,17 +314,14 @@ class NetworkService {
         let (_, mealResponse) = try await URLSession.shared.data(for: mealRequest)
         
         guard let mealHttpResponse = mealResponse as? HTTPURLResponse else {
-            debugPrint("Delete Error: Invalid response")
             throw URLError(.badServerResponse)
         }
         
         guard (200...299).contains(mealHttpResponse.statusCode) else {
-            debugPrint("Delete Error: Server returned \(mealHttpResponse.statusCode)")
             throw URLError(.badServerResponse)
         }
         
         guard let foodUrl = URL(string: "\(baseURL)/food-records/\(id)") else {
-            debugPrint("Delete Error: Invalid URL")
             throw URLError(.badURL)
         }
         
@@ -352,20 +331,16 @@ class NetworkService {
         let (_, foodResponse) = try await URLSession.shared.data(for: foodRequest)
         
         guard let foodHttpResponse = foodResponse as? HTTPURLResponse else {
-            debugPrint("Delete Error: Invalid response")
             throw URLError(.badServerResponse)
         }
         
         guard (200...299).contains(foodHttpResponse.statusCode) else {
-            debugPrint("Delete Error: Server returned \(foodHttpResponse.statusCode)")
             throw URLError(.badServerResponse)
         }
     }
     
-    // Updating food records
     func updateMealRecord(_ food: FoodItem) async throws {
         guard let serverId = food.serverId else {
-            print("Error: No server ID found for food item")
             throw URLError(.badURL)
         }
         
@@ -413,22 +388,13 @@ class NetworkService {
             record["recordDate"] = ISO8601DateFormatter().string(from: food.date)
         }
         
-        // Add image URL (if available)
         if let imageUrl = food.imageUrl, !imageUrl.isEmpty {
             record["image_url"] = imageUrl
-            print("Including image URL in food update: \(imageUrl)")
         }
-        
-        print("Sending update request to:", url.absoluteString)
-        print("Update data:", record)
         
         request.httpBody = try JSONSerialization.data(withJSONObject: record)
         
         let (data, response) = try await URLSession.shared.data(for: request)
-        
-        if let responseString = String(data: data, encoding: .utf8) {
-            print("Server response:", responseString)
-        }
         
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
@@ -436,7 +402,6 @@ class NetworkService {
         }
     }
     
-    // Add deleteFoodRecord method
     func deleteFoodRecord(id: String, endpoint: String) async throws {
         guard let url = URL(string: "\(baseURL)/\(endpoint)/\(id)") else {
             throw URLError(.badURL)
@@ -544,7 +509,6 @@ class FoodViewModel: ObservableObject {
     
 
     init() {
-
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(userDidLogin),
@@ -552,7 +516,6 @@ class FoodViewModel: ObservableObject {
             object: nil
         )
         
-
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(userDidLogout),
@@ -560,7 +523,6 @@ class FoodViewModel: ObservableObject {
             object: nil
         )
         
-
         if UserManager.shared.currentUser != nil {
             Task {
                 await loadFoods()
@@ -585,7 +547,6 @@ class FoodViewModel: ObservableObject {
             self.foodItems = []
             self.recentHistory = []
             self.mealCounts = [:]
-            print("User logged out: Cleared all food record data")
         }
     }
     
@@ -597,11 +558,8 @@ class FoodViewModel: ObservableObject {
     func goToPreviousDay() {
         if let newDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate) {
             DispatchQueue.main.async {
-                // First update the date
                 self.selectedDate = newDate
-                print("Date changed to previous day: \(self.dateString)")
                 
-                // Then force refresh data
                 Task {
                     await self.loadFoods()
                 }
@@ -612,11 +570,8 @@ class FoodViewModel: ObservableObject {
     func goToNextDay() {
         if let newDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate) {
             DispatchQueue.main.async {
-                // First update the date
                 self.selectedDate = newDate
-                print("Date changed to next day: \(self.dateString)")
                 
-                // Then force refresh data
                 Task {
                     await self.loadFoods()
                 }
@@ -624,31 +579,25 @@ class FoodViewModel: ObservableObject {
         }
     }
     
-    // Load all food
     @MainActor
     func loadFoods() async {
-        // 1. First check current user status
         if UserManager.shared.currentUser == nil {
-            debugPrint("Warning: No logged in user detected, attempting to recover user session")
-            
-            // 2. Try to restore session from UserDefaults
             if let savedUserId = UserDefaults.standard.object(forKey: "savedUserId") as? Int {
-                debugPrint("Found saved user ID: \(savedUserId), attempting to restore session")
-                
-                // 3. Use synchronous method to wait for user data to load
                 let semaphore = DispatchSemaphore(value: 0)
                 var userLoaded = false
+                var actualUserId = savedUserId
                 
                 UserManager.shared.fetchUser(userId: savedUserId) {
                     userLoaded = UserManager.shared.currentUser != nil
+                    if let user = UserManager.shared.currentUser {
+                        actualUserId = user.user_id
+                    }
                     semaphore.signal()
                 }
                 
-                // Wait for at most 3 seconds
                 _ = semaphore.wait(timeout: .now() + 3.0)
                 
                 if !userLoaded {
-                    debugPrint("Error: Failed to restore user session")
                     DispatchQueue.main.async {
                         self.foodItems = []
                         self.mealCounts = [:]
@@ -656,7 +605,6 @@ class FoodViewModel: ObservableObject {
                     return
                 }
             } else {
-                debugPrint("Error: No logged in user and no saved user ID found")
                 DispatchQueue.main.async {
                     self.foodItems = []
                     self.mealCounts = [:]
@@ -666,7 +614,6 @@ class FoodViewModel: ObservableObject {
         }
         
         guard let user = UserManager.shared.currentUser else {
-            debugPrint("Error: No logged in user, cannot load food records")
             DispatchQueue.main.async {
                 self.foodItems = []
                 self.mealCounts = [:]
@@ -674,9 +621,15 @@ class FoodViewModel: ObservableObject {
             return
         }
         
-        // 4. If we reach here, user status should be restored or confirmed
         let userId = user.user_id
-        debugPrint("Loading food records for user ID: \(userId)")
+        
+        if userId <= 0 {
+            DispatchQueue.main.async {
+                self.foodItems = []
+                self.mealCounts = [:]
+            }
+            return
+        }
         
         do {
             let newFoodItems = try await NetworkService.shared.getMealRecords(userId: userId, date: selectedDate)
@@ -686,7 +639,6 @@ class FoodViewModel: ObservableObject {
                 self.updateMealCounts()
             }
         } catch {
-            debugPrint("Error loading foods:", error)
             DispatchQueue.main.async {
                 self.foodItems = []
                 self.mealCounts = [:]
@@ -694,12 +646,10 @@ class FoodViewModel: ObservableObject {
         }
     }
     
-    // Modify delete method
     @MainActor
     func deleteFood(_ food: FoodItem) async {
         do {
             if let serverId = food.serverId {
-        
                 let endpoint = food.name.hasPrefix("Camera Food") ? "food-records" : "foods"
                 try await NetworkService.shared.deleteFoodRecord(id: String(serverId), endpoint: endpoint)
                 
@@ -708,20 +658,20 @@ class FoodViewModel: ObservableObject {
                 }
                 
                 updateMealCounts()
-            } else {
-                debugPrint("Delete Error: Missing serverId")
             }
         } catch {
-            debugPrint("Delete Error:", error.localizedDescription)
         }
     }
     
-    // You also don't need to reload all your data after adding food
     @MainActor
     func addFood(_ food: FoodItem) async {
         do {
-            guard let userId = UserManager.shared.currentUser?.user_id else {
-                debugPrint("Error: Cannot add food - no logged in user")
+            guard let user = UserManager.shared.currentUser else {
+                return
+            }
+            
+            let userId = user.user_id
+            if userId <= 0 {
                 return
             }
             
@@ -748,11 +698,9 @@ class FoodViewModel: ObservableObject {
                 foodItems[index].serverId = response.food_id
             }
         } catch {
-            debugPrint("Error adding food:", error)
         }
     }
     
-  
     @MainActor
     func updateFood(_ food: FoodItem) async {
         do {
@@ -764,11 +712,9 @@ class FoodViewModel: ObservableObject {
             
             updateMealCounts()
         } catch {
-            debugPrint("Error updating food:", error)
         }
     }
     
-  
     private func updateMealCounts() {
         var counts: [MealType: Int] = [:]
         let todayItems = foodItems.filter { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }
@@ -780,7 +726,6 @@ class FoodViewModel: ObservableObject {
         self.mealCounts = counts
     }
     
-
     var dateString: String {
         let calendar = Calendar.current
         if calendar.isDateInToday(selectedDate) {

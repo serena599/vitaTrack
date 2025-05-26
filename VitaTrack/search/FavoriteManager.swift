@@ -50,9 +50,19 @@ class FavoriteManager: ObservableObject {
     
     @objc private func userDidLogin() {
         if let user = UserManager.shared.currentUser {
-            self.currentUserID = user.user_id
+            let userID = user.user_id
+            print("FavoriteManager: User logged in, updating current user ID from \(self.currentUserID) to \(userID)")
+            
+            if userID <= 0 {
+                print("FavoriteManager: Warning - received invalid user ID after login: \(userID)")
+                return
+            }
+            
+            self.currentUserID = userID
             print("FavoriteManager: User logged in, updated current user ID to \(self.currentUserID)")
             fetchUserFavorites()
+        } else {
+            print("FavoriteManager: User login notification received but no current user found")
         }
     }
     
@@ -63,8 +73,24 @@ class FavoriteManager: ObservableObject {
     }
     
     func setCurrentUser(userID: Int) {
+        print("FavoriteManager: Setting current user ID to \(userID)")
+        
+        if userID <= 0 {
+            print("FavoriteManager: Warning - invalid user ID: \(userID)")
+            return
+        }
+        
         self.currentUserID = userID
-        fetchUserFavorites()
+        print("FavoriteManager: Current user ID updated to \(userID)")
+        
+        // Fetch updated favorite list
+        fetchUserFavorites { success in
+            if success {
+                print("FavoriteManager: Successfully fetched favorites for user \(userID)")
+            } else {
+                print("FavoriteManager: Failed to fetch favorites for user \(userID)")
+            }
+        }
     }
     
     func fetchUserFavorites(completion: @escaping (Bool) -> Void = {_ in}) {

@@ -17,7 +17,6 @@ class SignUpViewModel: ObservableObject {
     @Published var isSignUpSuccessful = false
     
     func signUp() {
-        // Basic validation
         guard !username.isEmpty, !email.isEmpty, !password.isEmpty else {
             errorMessage = "All fields are required"
             showError = true
@@ -36,7 +35,6 @@ class SignUpViewModel: ObservableObject {
             return
         }
         
-        // Validate date format and convert to YYYY-MM-DD
         guard let formattedDate = convertAndValidateDate(dobString) else {
             errorMessage = "Please enter date in DD-MM-YYYY format"
             showError = true
@@ -45,7 +43,6 @@ class SignUpViewModel: ObservableObject {
         
         isLoading = true
         
-        // Prepare request data
         let signUpData: [String: Any] = [
             "username": username,
             "email": email,
@@ -82,7 +79,7 @@ class SignUpViewModel: ObservableObject {
                     if httpResponse.statusCode == 200 {
                         if let success = json["success"] as? Bool, success {
                             isSignUpSuccessful = true
-                            errorMessage = "Registration successful! Please login with your new account"
+                            errorMessage = "Registration successful! Please login with your new account."
                             showError = true
                         } else {
                             errorMessage = message
@@ -115,17 +112,14 @@ class SignUpViewModel: ObservableObject {
         let inputFormatter = DateFormatter()
         inputFormatter.dateFormat = "dd-MM-yyyy"
         
-        // First try to parse the input date
         guard let date = inputFormatter.date(from: dateString) else {
             return nil
         }
         
-        // Check if the date is not in the future
         guard date <= Date() else {
             return nil
         }
         
-        // Convert to YYYY-MM-DD format for the server
         let outputFormatter = DateFormatter()
         outputFormatter.dateFormat = "yyyy-MM-dd"
         return outputFormatter.string(from: date)

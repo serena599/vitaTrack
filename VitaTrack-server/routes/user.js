@@ -4,30 +4,27 @@ const { pool } = require("../databaseConfig");
 
 // Login endpoint
 router.post("/login", (req, res) => {
-  console.log("Received login request:", req.body);
   const { username, password } = req.body;
-  // Validate username and password
   const sql = "SELECT * FROM user WHERE username = ? AND password = ?";
   pool.query(sql, [username, password], (error, results) => {
     if (error) {
-      console.error("Login error:", error);
       return res.status(500).json({
         success: false,
         message: "Login failed, server error",
       });
     }
     if (results.length > 0) {
-      console.log("Login successful for user:", username);
+      const user = results[0];
       res.json({
         success: true,
         message: "Login successful",
         user: {
-          id: results[0].user_id,
-          username: results[0].username,
+          id: user.user_id,
+          user_id: user.user_id,
+          username: user.username,
         },
       });
     } else {
-      console.log("Login failed: Invalid credentials");
       res.json({
         success: false,
         message: "Invalid username or password",
@@ -38,7 +35,6 @@ router.post("/login", (req, res) => {
 
 // Signup endpoint
 router.post("/signup", (req, res) => {
-  console.log("Received signup request:", req.body);
   const { username, password, email, phone, firstName, lastName, dob } =
     req.body;
 
@@ -68,27 +64,21 @@ router.post("/signup", (req, res) => {
     [lowercaseUsername, email],
     (error, results) => {
       if (error) {
-        console.error("Signup error:", error);
         return res.status(500).json({
           success: false,
           message: "Registration failed, server error",
         });
       }
 
-      // Log the results for debugging
-      console.log("Existing user check results:", results);
-
       if (results.length > 0) {
         const existingUser = results[0];
         if (existingUser.username.toLowerCase() === lowercaseUsername) {
-          console.log("Signup failed: Username exists (case-insensitive)");
           return res.json({
             success: false,
             message: "Username already exists",
           });
         }
         if (existingUser.email === email) {
-          console.log("Signup failed: Email exists");
           return res.json({
             success: false,
             message: "Email already exists",
@@ -102,7 +92,7 @@ router.post("/signup", (req, res) => {
         "INSERT INTO user (username, password, email, phone, joinedYear, firstName, lastName, gender, dob) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
       const values = [
-        lowercaseUsername, // Store username in lowercase
+        lowercaseUsername,
         password,
         email,
         phone || "",
@@ -113,24 +103,23 @@ router.post("/signup", (req, res) => {
         dob || new Date().toISOString().split("T")[0],
       ];
 
-      // Log the SQL query and values for debugging
-      console.log("SQL Query:", sql);
-      console.log("Values:", values);
-
       pool.query(sql, values, (error, results) => {
         if (error) {
-          console.error("User creation error:", error);
           return res.status(500).json({
             success: false,
             message: "Registration failed, server error",
             details: error.message,
           });
         }
-        console.log("User created successfully");
         res.json({
           success: true,
           message: "Registration successful",
           userId: results.insertId,
+          user: {
+            id: results.insertId,
+            user_id: results.insertId,
+            username: lowercaseUsername,
+          },
         });
       });
     }

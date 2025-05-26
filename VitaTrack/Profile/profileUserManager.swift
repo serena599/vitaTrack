@@ -24,22 +24,10 @@ class UserManager: ObservableObject {
                     if self.currentUser != nil {
                         self.isLoggedIn = true
                     } else {
-                        let tempUser = User(
-                            firstName: "Temp",
-                            lastName: "User\(savedUserId)",
-                            username: "user\(savedUserId)",
-                            joinedYear: "2023",
-                            image: nil,
-                            gender: "",
-                            dob: Date(),
-                            phone: "",
-                            email: "user\(savedUserId)@example.com",
-                            user_id: savedUserId,
-                            avatarPath: nil,
-                            password: ""
-                        )
-                        self.currentUser = tempUser
-                        self.isLoggedIn = true
+                        self.isLoggedIn = false
+                        
+                        UserDefaults.standard.removeObject(forKey: self.userIdKey)
+                        UserDefaults.standard.synchronize()
                     }
                     
                     self.objectWillChange.send()
@@ -69,35 +57,21 @@ class UserManager: ObservableObject {
                             self.isLoggedIn = true
                             self.objectWillChange.send()
                             
-                            // Send user login notification
                             NotificationCenter.default.post(name: Notification.Name("UserDidLoginNotification"), object: nil)
-                            print("User logged in: ID = \(userId), sending login notification")
                             
                             completion(true, nil)
                         } else {
-                            let tempUser = User(
-                                firstName: "Temp",
-                                lastName: "User",
-                                username: username,
-                                joinedYear: "2023",
-                                image: nil,
-                                gender: "",
-                                dob: Date(),
-                                phone: "",
-                                email: username,
-                                user_id: userId,
-                                avatarPath: nil,
-                                password: password
-                            )
-                            self.currentUser = tempUser
-                            self.isLoggedIn = true
-                            self.objectWillChange.send()
-                            
-                            // Also send notification
-                            NotificationCenter.default.post(name: Notification.Name("UserDidLoginNotification"), object: nil)
-                            print("Temp user logged in: ID = \(userId), sending login notification")
-                            
-                            completion(true, nil)
+                            DispatchQueue.main.async {
+                                self.isLoading = false
+                                self.lastError = "Failed to fetch user details"
+                                self.isLoggedIn = false
+                                self.objectWillChange.send()
+                                
+                                UserDefaults.standard.removeObject(forKey: self.userIdKey)
+                                UserDefaults.standard.synchronize()
+                                
+                                completion(false, "Failed to fetch user details")
+                            }
                         }
                     }
                 }
@@ -114,17 +88,25 @@ class UserManager: ObservableObject {
     }
 
     func fetchUser(userId: Int, completion: (() -> Void)? = nil) {
+        if userId <= 0 {
+            DispatchQueue.main.async {
+                completion?()
+            }
+            return
+        }
+        
         userAPIService.fetchUser(userId: userId) { user in
             DispatchQueue.main.async {
                 if let user = user {
-                    self.currentUser = user
+                    let serverId = user.user_id
                     
-                    // Ensure login status is set to true
+                    self.currentUser = user
                     self.isLoggedIn = true
                     
-                    // Ensure user ID is saved to UserDefaults
-                    UserDefaults.standard.set(userId, forKey: self.userIdKey)
+                    UserDefaults.standard.set(serverId, forKey: self.userIdKey)
                     UserDefaults.standard.synchronize()
+                    
+                    FavoriteManager.shared.setCurrentUser(userID: serverId)
                     
                     self.objectWillChange.send()
                     
@@ -140,6 +122,12 @@ class UserManager: ObservableObject {
                         completion?()
                     }
                 } else {
+                    self.isLoggedIn = false
+                    self.currentUser = nil
+                    
+                    UserDefaults.standard.removeObject(forKey: self.userIdKey)
+                    UserDefaults.standard.synchronize()
+                    
                     self.objectWillChange.send()
                     completion?()
                 }
@@ -233,9 +221,17 @@ class UserManager: ObservableObject {
             UserDefaults.standard.synchronize()
             self.objectWillChange.send()
             
-            // Send user logout notification
             NotificationCenter.default.post(name: Notification.Name("UserDidLogoutNotification"), object: nil)
-            print("User logged out, sending logout notification")
+        }
+    }
+
+    @objc private func userDidLogin() {
+        if let user = UserManager.shared.currentUser {
+            let userId = user.user_id
+            
+            DispatchQueue.main.async {
+                FavoriteManager.shared.setCurrentUser(userID: userId)
+            }
         }
     }
 }

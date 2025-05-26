@@ -1,6 +1,5 @@
 import SwiftUI
 
-
 struct inputField: View {
     var icon: String
     var placeholder: String
@@ -24,7 +23,6 @@ struct inputField: View {
         )
     }
 }
-
 
 struct secureInputField: View {
     var icon: String
@@ -93,7 +91,6 @@ struct SignUpView: View {
                         InputField(icon: "phone", placeholder: "Phone", text: $viewModel.phone)
                         SecureInputField(icon: "lock", placeholder: "Password", text: $viewModel.password)
                         SecureInputField(icon: "lock", placeholder: "Confirm Password", text: $viewModel.confirmPassword)
-                        
                         
                         HStack {
                             Button(action: {
@@ -171,7 +168,6 @@ struct SignUpView: View {
     }
 }
 
-
 struct PrivacyPolicyView: View {
     @Environment(\.dismiss) private var dismiss
     
@@ -189,23 +185,14 @@ struct PrivacyPolicyView: View {
                         .padding(.bottom, 20)
                     
                     policySection(title: "1. Information We Collect", content: "VitaTrack collects personal data such as your name, email address, date of birth, and information about your diet and health preferences. We also collect usage data to improve our services.")
-                    
                     policySection(title: "2. How We Use Your Information", content: "We use your information to provide and improve our services, personalize your experience, communicate with you, and comply with legal obligations.")
-                    
                     policySection(title: "3. Data Security", content: "We implement appropriate security measures to protect your personal data from unauthorized access, alteration, disclosure, or destruction.")
-                    
                     policySection(title: "4. Your Rights", content: "You have the right to access, correct, update, or request deletion of your personal information. You can also object to processing of your personal information or request portability.")
-                    
                     policySection(title: "5. Changes to This Policy", content: "We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.")
-                    
                     policySection(title: "6. Cookies and Tracking", content: "We use cookies and similar tracking technologies to track activity on our Service and hold certain information. Cookies are files with a small amount of data which may include an anonymous unique identifier.")
-                    
                     policySection(title: "7. Service Providers", content: "We may employ third-party companies and individuals to facilitate our Service, provide the Service on our behalf, perform Service-related services, or assist us in analyzing how our Service is used.")
-                    
                     policySection(title: "8. Analytics", content: "We may use third-party Service Providers to monitor and analyze the use of our Service.")
-                    
                     policySection(title: "9. Children's Privacy", content: "Our Service does not address anyone under the age of 18. We do not knowingly collect personally identifiable information from anyone under the age of 18.")
-                    
                     policySection(title: "10. Contact Us", content: "If you have any questions about this Privacy Policy, please contact us at privacy@vitatrack.com")
                     
                     Spacer().frame(height: 50)

@@ -40,7 +40,17 @@ class UserAPIService {
                        let success = json["success"] as? Bool, success,
                        let userObject = json["user"] as? [String: Any] {
                         
-                        let userId = userObject["id"] as? Int ?? userObject["user_id"] as? Int ?? 0
+                        var userId = 0
+                        
+                        if let id = userObject["user_id"] as? Int {
+                            userId = id
+                        } else if let idString = userObject["user_id"] as? String, let id = Int(idString) {
+                            userId = id
+                        } else if let id = userObject["id"] as? Int {
+                            userId = id
+                        } else if let idString = userObject["id"] as? String, let id = Int(idString) {
+                            userId = id
+                        }
                         
                         if userId == 0 {
                             completion(false, "Invalid user ID", nil)
