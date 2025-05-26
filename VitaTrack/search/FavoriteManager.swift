@@ -22,7 +22,7 @@ class FavoriteManager: ObservableObject {
     @Published var userFavorites: [Int] = [] // Store the list of recipe IDs favorited by the current user
     
     private init() {
-        // 注册通知监听用户登录和注销
+
         NotificationCenter.default.addObserver(
             self, 
             selector: #selector(userDidLogin),
@@ -37,7 +37,7 @@ class FavoriteManager: ObservableObject {
             object: nil
         )
         
-        // 检查是否已有用户登录
+     
         if let user = UserManager.shared.currentUser {
             self.currentUserID = user.user_id
             fetchUserFavorites()
@@ -67,38 +67,59 @@ class FavoriteManager: ObservableObject {
         fetchUserFavorites()
     }
     
-    func fetchUserFavorites() {
+    func fetchUserFavorites(completion: @escaping (Bool) -> Void = {_ in}) {
         // Get user's favorite list from server
-        guard currentUserID > 0 else { return }
-        guard let url = URL(string: "\(SERVER_URL)/api/favorites/\(currentUserID)") else { return }
+        guard currentUserID > 0 else {
+            completion(false)
+            return
+        }
+        guard let url = URL(string: "\(SERVER_URL)/api/favorites/\(currentUserID)") else {
+            completion(false)
+            return
+        }
         
         URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, error == nil else { return }
+            guard let data = data, error == nil else {
+                DispatchQueue.main.async {
+                    completion(false)
+                }
+                return
+            }
             
             do {
                 let favorites = try JSONDecoder().decode([FavoriteRecipe].self, from: data)
                 DispatchQueue.main.async {
                     self.userFavorites = favorites.map { $0.recipe_ID }
                     print("✅ Successfully retrieved user favorites, total: \(self.userFavorites.count)")
+                    completion(true)
                 }
             } catch {
                 print("❌ Failed to parse user favorites:", error)
+                DispatchQueue.main.async {
+                    completion(false)
+                }
             }
         }.resume()
     }
     
-    func toggleFavorite(recipeID: Int) {
-        guard currentUserID > 0 else { return }
+    func toggleFavorite(recipeID: Int, completion: @escaping (Bool) -> Void = {_ in}) {
+        guard currentUserID > 0 else {
+            completion(false)
+            return
+        }
         
         if userFavorites.contains(recipeID) {
-            removeFavorite(recipeID: recipeID)
+            removeFavorite(recipeID: recipeID, completion: completion)
         } else {
-            addFavorite(recipeID: recipeID)
+            addFavorite(recipeID: recipeID, completion: completion)
         }
     }
     
-    private func addFavorite(recipeID: Int) {
-        guard let url = URL(string: "\(SERVER_URL)/api/favorites/add") else { return }
+    private func addFavorite(recipeID: Int, completion: @escaping (Bool) -> Void = {_ in}) {
+        guard let url = URL(string: "\(SERVER_URL)/api/favorites/add") else {
+            completion(false)
+            return
+        }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -110,17 +131,24 @@ class FavoriteManager: ObservableObject {
         URLSession.shared.dataTask(with: request) { data, response, error in
             if error == nil {
                 DispatchQueue.main.async {
-                    self.userFavorites.append(recipeID)
+                    if !self.userFavorites.contains(recipeID) {
+                        self.userFavorites.append(recipeID)
+                    }
                     print("✅ Successfully added to favorites")
+                    completion(true)
                 }
             } else {
                 print("❌ Failed to add favorite:", error?.localizedDescription ?? "")
+                completion(false)
             }
         }.resume()
     }
     
-    private func removeFavorite(recipeID: Int) {
-        guard let url = URL(string: "\(SERVER_URL)/api/favorites/remove") else { return }
+    private func removeFavorite(recipeID: Int, completion: @escaping (Bool) -> Void = {_ in}) {
+        guard let url = URL(string: "\(SERVER_URL)/api/favorites/remove") else {
+            completion(false)
+            return
+        }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -134,9 +162,11 @@ class FavoriteManager: ObservableObject {
                 DispatchQueue.main.async {
                     self.userFavorites.removeAll { $0 == recipeID }
                     print("✅ Successfully removed from favorites")
+                    completion(true)
                 }
             } else {
                 print("❌ Failed to remove favorite:", error?.localizedDescription ?? "")
+                completion(false)
             }
         }.resume()
     }

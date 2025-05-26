@@ -50,12 +50,17 @@ struct SearchView: View {
                         
                         //Recommendation
                         Button {
-                            if tabSelection != 1 {
-                                tabSelection = 1
+                            // Already in recommendation tab, do nothing
+                            if tabSelection == 1 {
+                                return
                             }
                             
-                            // to do: switch to recommendation list of popular recipes...
+                            // Switch to recommendation tab
+                            tabSelection = 1
+                            
+                            // Switch to recommendation list and fetch all recipes
                             show_favorite_recipes = false
+                            fetcher.fetchRecipes()
                             
                         } label: {
                             if tabSelection == 1 {
@@ -64,10 +69,8 @@ struct SearchView: View {
                                     .foregroundColor(.white)
                                     .background(
                                         Capsule()
-                                            .stroke(Color("IconGreen"), lineWidth: 0.8)
-                                            //.background(Color("IconGreen"))
+                                            .stroke(Color.foodPrimary, lineWidth: 0.8)
                                             .background(Color.foodPrimary)
-                                        //.clipped()
                                     )
                                     .clipShape(Capsule())
                             } else {
@@ -81,18 +84,27 @@ struct SearchView: View {
                         
                         //My favorite
                         Button {
-                            if tabSelection != 2 {
-                                tabSelection = 2
+                            // Already in favorite tab, do nothing
+                            if tabSelection == 2 {
+                                return
                             }
                             
-                            // Switch to favorites, get latest favorite data from server
+                            // Switch to favorites tab
+                            tabSelection = 2
+                            
+                            // Switch to favorites view
                             show_favorite_recipes = true
                             
                             // Get details of user's favorite recipes from server
                             if favoriteManager.currentUserID > 0 {
+                                // Fetch the favorite recipes directly
                                 fetcher.fetchFavoriteRecipes(userID: favoriteManager.currentUserID)
                             } else {
                                 print("Warning: No logged in user, cannot fetch favorites data")
+                                // Clear recipes if not logged in
+                                DispatchQueue.main.async {
+                                    fetcher.recipes = []
+                                }
                             }
                             
                         } label: {
@@ -102,8 +114,7 @@ struct SearchView: View {
                                     .foregroundColor(.white)
                                     .background(
                                         Capsule()
-                                            .stroke(Color("IconGreen"), lineWidth: 0.8)
-                                            //.background(Color("IconGreen"))
+                                            .stroke(Color.foodPrimary, lineWidth: 0.8)
                                             .background(Color.foodPrimary)
                                     )
                                     .clipShape(Capsule())
@@ -124,7 +135,13 @@ struct SearchView: View {
                     
                     RecipeList(fetcher: fetcher, show_favorite_recipes: $show_favorite_recipes)
                         .onAppear() {
-                            fetcher.fetchRecipes()
+                            // Initial load only - this will be handled by RecipeList's own onAppear
+                            if !fetcher.recipes.isEmpty {
+                                return
+                            }
+                            if !show_favorite_recipes {
+                                fetcher.fetchRecipes()
+                            }
                         }
                 }
         }

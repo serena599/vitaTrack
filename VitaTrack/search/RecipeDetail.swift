@@ -26,6 +26,7 @@ struct RecipeDetail: View {
         //Custom navigation bar, using Serana's code for consistent format
         HStack {
             Button {
+                // Just dismiss this view to return to previous screen
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
@@ -98,8 +99,24 @@ struct RecipeDetail: View {
                                 .tint(Color.green)
                                 .foregroundStyle(Color.green)
                                 .onTapGesture {
-                                    favoriteManager.toggleFavorite(recipeID: recipeToDisplay.recipe_ID)
-                                    isFavorite.toggle() // Immediate UI feedback
+                                    // Check if user is logged in
+                                    guard favoriteManager.currentUserID > 0 else {
+                                        // Show login prompt if UI component available
+                                        print("❌ User not logged in, cannot add to favorites")
+                                        return
+                                    }
+                                    
+                                    // Add loading indicator or disable button logic here
+                                    
+                                    favoriteManager.toggleFavorite(recipeID: recipeToDisplay.recipe_ID) { success in
+                                        if success {
+                                            // Only update UI when operation succeeds
+                                            isFavorite = favoriteManager.isFavorite(recipeID: recipeToDisplay.recipe_ID)
+                                        } else {
+                                            print("❌ Favorite operation failed")
+                                            // Add error prompt here
+                                        }
+                                    }
                                 }
                                 .padding(5)
                             
@@ -413,9 +430,13 @@ struct RecipeDetail: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true) 
         .onAppear {
-            // Check if current recipe is already favorited
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // If user is logged in, only check if this recipe is a favorite
+            if favoriteManager.currentUserID > 0 {
+                // Just check current favorite status without fetching entire list
                 isFavorite = favoriteManager.isFavorite(recipeID: recipeToDisplay.recipe_ID)
+            } else {
+                // When user is not logged in, make sure favorite icon shows unfavorited state
+                isFavorite = false
             }
         }
     }

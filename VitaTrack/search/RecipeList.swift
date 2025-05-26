@@ -57,12 +57,8 @@ struct RecipeList: View {
         
         ScrollView {
             LazyVGrid(columns: columns) {
-                // First filter out user's favorite recipes
-                ForEach(show_favorite_recipes ? 
-                         fetcher.recipes.filter { 
-                             favoriteManager.userFavorites.contains($0.recipe_ID) 
-                         } : 
-                         fetcher.recipes, id: \.recipe_name) { recipe in
+                // Display recipes according to current mode
+                ForEach(fetcher.recipes, id: \.recipe_name) { recipe in
                     
                     NavigationLink(destination: RecipeDetail(recipeToDisplay: recipe)){
                         
@@ -93,9 +89,15 @@ struct RecipeList: View {
             .padding()
         }
         .onAppear {
+            // Load correct recipe list based on current mode
             if show_favorite_recipes {
-                // If showing favorites page, get favorite recipes
-                fetcher.fetchFavoriteRecipes(userID: favoriteManager.currentUserID)
+                // If we're in favorites view and have a logged in user, get favorites
+                if favoriteManager.currentUserID > 0 {
+                    fetcher.fetchFavoriteRecipes(userID: favoriteManager.currentUserID)
+                }
+            } else {
+                // In recommendation view, get all recipes
+                fetcher.fetchRecipes()
             }
         }
     }
